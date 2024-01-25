@@ -1,3 +1,6 @@
+using DotnetApi.Data;
+using DotnetApi.Dtos;
+using DotnetApi.Models;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DotnetApi.Controllers;
@@ -73,7 +76,7 @@ FROM TutorialAppSchema.Users";
 
     [HttpPost("AddUser")]
 
-    public IActionResult AddUser(User user)
+    public IActionResult AddUser(UserToAddDto user)
     {
         string sql = @"
         INSERT INTO TutorialAppSchema.Users(
@@ -99,6 +102,24 @@ FROM TutorialAppSchema.Users";
             return BadRequest();
         }
     }
+
+    [HttpDelete("DeleteUser/{userId}")]
+    public IActionResult DeleteUser(int userId)
+    {
+        string sql = @"
+        DELETE FROM TutorialAppSchema.Users
+        WHERE UserId = " + userId.ToString();
+        
+        if (_dapper.ExexuteSql(sql))
+        {
+            return Ok();
+        }
+        else
+        {
+            return BadRequest();
+        }
+    }
+
 }
 
 
