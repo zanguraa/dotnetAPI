@@ -109,7 +109,7 @@ FROM TutorialAppSchema.Users";
         string sql = @"
         DELETE FROM TutorialAppSchema.Users
         WHERE UserId = " + userId.ToString();
-        
+
         if (_dapper.ExexuteSql(sql))
         {
             return Ok();

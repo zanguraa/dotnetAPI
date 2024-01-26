@@ -36,5 +36,10 @@ namespace DotnetApi.Data
             IDbConnection dbConnection = new SqlConnection(_config.GetConnectionString("DefaultConnection"));
             return dbConnection.Execute(sql);
         }
+
+        internal bool UserExists(int userId)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

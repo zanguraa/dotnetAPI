@@ -43,5 +43,46 @@ namespace DotnetApi.Controllers
             UserJobInfo userJobInfo = _dapper.LoadDataSingle<UserJobInfo>(sql);
             return userJobInfo;
         }
+
+        [HttpPut("EditUserJobInfo")]
+        public IActionResult EditUserJobInfo(UserJobInfo userJobInfo)
+        {
+            string sql = @"
+            UPDATE TutorialAppSchema.UserJobInfo
+            SET JobTitle = '" + userJobInfo.JobTitle + @"',
+                Department = '" + userJobInfo.Department + @"'
+            WHERE UserId = " + userJobInfo.UserId.ToString();
+
+            IEnumerable<UserJobInfo> userJobInfoList = _dapper.LoadData<UserJobInfo>(sql);
+
+            return Ok();
+        }
+
+        [HttpPost("AddUserJobInfo")]
+        public IActionResult AddUserJobInfo(UserJobInfo userJobInfo)
+        {
+            if (_dapper.UserExists(userJobInfo.UserId))
+    {
+        // UserId is not unique, return a conflict response
+        return Conflict("User with the same UserId already exists.");
+    }
+    
+            string sql = @"
+            INSERT INTO TutorialAppSchema.UserJobInfo
+            (UserId, JobTitle, Department)
+            VALUES
+            (" + userJobInfo.UserId.ToString() + @", '" + userJobInfo.JobTitle + @"', '" + userJobInfo.Department + @"')";
+            if (_dapper.ExexuteSql(sql))
+            {
+                return Ok();
+            }
+            else
+            {
+                return BadRequest();
+            }
+        }
     }
 }
+
+
+    
