@@ -31,10 +31,30 @@ namespace DotnetApi.Data
             return dbConnection.Execute(sql) > 0;
         }
 
-         public int ExecuteWithRowCount(string sql)
+        public int ExecuteWithRowCount(string sql)
         {
             IDbConnection dbConnection = new SqlConnection(_config.GetConnectionString("DefaultConnection"));
             return dbConnection.Execute(sql);
+        }
+
+        public int ExecuteSqlWithParameters(string sql, List<SqlParameter> parameters)
+        {
+            SqlCommand commandWithParams = new SqlCommand(sql);
+
+            foreach (SqlParameter parameter in parameters)
+            {
+                commandWithParams.Parameters.Add(parameter);
+            }
+
+            SqlConnection dbConnection = new SqlConnection(_config.GetConnectionString("DefaultConnection"));
+            dbConnection.Open();
+            commandWithParams.Connection = dbConnection;
+
+            int rowAsAffected = commandWithParams.ExecuteNonQuery();
+
+            dbConnection.Close();
+
+            return rowAsAffected > 0 ? rowAsAffected : 0;
         }
 
         internal bool UserExists(int userId)
