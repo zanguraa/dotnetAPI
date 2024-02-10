@@ -50,7 +50,7 @@ namespace DotnetApi.Controllers
             string SqlAddAuth = @"INSERT INTO TutorialAppSchema.Auth (
             [Email],
             [PasswordHash],
-            [PasswprdSalt]
+            [PasswordSalt]
             ) VALUES ( '" + UserForRegistration.Email +
                      "', @passwordHash, @passwordSalt)";
 
@@ -68,8 +68,27 @@ namespace DotnetApi.Controllers
             {
                 return BadRequest("Failed to add user");
             }
+            string sqlAddUser = @"
+        INSERT INTO TutorialAppSchema.Users(
+                [FirstName],
+                [LastName],
+                [Email],
+                [Gender],
+                [Active] 
+            ) VALUES ( '" + UserForRegistration.FirstName +
+               "',  '" + UserForRegistration.LastName +
+               "','" + UserForRegistration.Email +
+               "','" + UserForRegistration.Gender +
+               "', 1)";
 
-            return Ok();
+            if (_dapper.ExexuteSql(sqlAddUser))
+            {
+                return Ok();
+            }
+            else
+            {
+                throw new Exception("Failed to add user");
+            }
         }
 
         [HttpPost("Login")]
