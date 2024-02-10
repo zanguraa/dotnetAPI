@@ -1,4 +1,6 @@
 using System.Data;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using DotnetApi.Data;
@@ -8,6 +10,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
 
 namespace DotnetApi.Controllers
 {
@@ -92,7 +95,7 @@ namespace DotnetApi.Controllers
         }
 
         [HttpPost("Login")]
-        public IActionResult Login(UserForLoginDto UserForLogin)
+        public IActionResult Login([FromBody] UserForLoginDto UserForLogin)
         {
             string sqlForHashAndSalt = @"SELECT
                     [PasswordHash],
@@ -112,7 +115,15 @@ namespace DotnetApi.Controllers
                 }
             }
 
-            return Ok();
+            int userId = _dapper.LoadDataSingle<int>(@"SELECT UserId FROM TutorialAppSchema.Users
+            WHERE Email = '" + UserForLogin.Email + "'");
+
+            return Ok(new Dictionary<string, string>
+            {
+                {
+                    "token", CreateToken(userId)
+                }
+        });
         }
 
         private byte[] GetPasswordHash(string password, byte[] passwordSalt)
@@ -128,6 +139,38 @@ namespace DotnetApi.Controllers
                 numBytesRequested: 256 / 8
             );
             return passwordHash;
+        }
+
+        private string CreateToken(int userId)
+        {
+            Claim[] claims = new Claim[]
+            {
+                new Claim("userId", userId.ToString())
+            };
+
+            SymmetricSecurityKey tokenkey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(
+                _config.GetSection("AppSettings:TokenKey").Value
+                )
+             );
+
+            SigningCredentials credentials = new SigningCredentials(
+                tokenkey,
+                 SecurityAlgorithms.HmacSha512Signature
+                 );
+
+            SecurityTokenDescriptor tokenDescriptor = new SecurityTokenDescriptor()
+            {
+                Subject = new ClaimsIdentity(claims),
+                Expires = DateTime.Now.AddDays(1),
+                SigningCredentials = credentials
+            };
+
+            JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
+
+            SecurityToken token = tokenHandler.CreateToken(tokenDescriptor);
+
+            return tokenHandler.WriteToken(token);
         }
 
     }
