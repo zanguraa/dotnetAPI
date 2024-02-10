@@ -5,6 +5,7 @@ using System.Security.Cryptography;
 using System.Text;
 using DotnetApi.Data;
 using DotnetApi.Dtos;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cryptography.KeyDerivation;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -14,7 +15,9 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace DotnetApi.Controllers
 {
-
+    [Authorize]
+    [ApiController]
+    [Route("[controller]")]
     public class AuthController : ControllerBase
     {
         private readonly DataContextDapper _dapper;
@@ -25,6 +28,7 @@ namespace DotnetApi.Controllers
             _config = config;
         }
 
+        [AllowAnonymous]
         [HttpPost("Register")]
         public IActionResult Register(UserForRegistrationDto UserForRegistration)
         {
@@ -94,84 +98,100 @@ namespace DotnetApi.Controllers
             }
         }
 
+        [AllowAnonymous]
         [HttpPost("Login")]
-        public IActionResult Login([FromBody] UserForLoginDto UserForLogin)
+        public IActionResult Login(UserForLoginDto userForLogin)
         {
-            string sqlForHashAndSalt = @"SELECT
-                    [PasswordHash],
-                    [PasswordSalt] FROM TutorialAppSchema.Auth Where Email = '" +
-                    UserForLogin.Email + "'";
+            string sqlForHashAndSalt = @"SELECT 
+                [PasswordHash],
+                [PasswordSalt] FROM TutorialAppSchema.Auth WHERE Email = '" +
+                userForLogin.Email + "'";
 
-            UserForLoginConfirmationDto userConfirmation = _dapper.
-            LoadDataSingle<UserForLoginConfirmationDto>(sqlForHashAndSalt);
+            UserForLoginConfirmationDto userForConfirmation = _dapper
+                .LoadDataSingle<UserForLoginConfirmationDto>(sqlForHashAndSalt);
 
-            byte[] passwordHash = GetPasswordHash(UserForLogin.Password, userConfirmation.PasswordSalt);
+            byte[] passwordHash = GetPasswordHash(userForLogin.Password, userForConfirmation.PasswordSalt);
 
-            for (int i = 0; i < passwordHash.Length; i++)
+
+            for (int index = 0; index < passwordHash.Length; index++)
             {
-                if (passwordHash[i] != userConfirmation.PasswordHash[i])
+                if (passwordHash[index] != userForConfirmation.PasswordHash[index])
                 {
-                    return Unauthorized();
+                    return StatusCode(401, "Incorrect password!");
                 }
             }
 
-            int userId = _dapper.LoadDataSingle<int>(@"SELECT UserId FROM TutorialAppSchema.Users
-            WHERE Email = '" + UserForLogin.Email + "'");
+            string userIdSql = @"
+                SELECT UserId FROM TutorialAppSchema.Users WHERE Email = '" +
+                userForLogin.Email + "'";
 
-            return Ok(new Dictionary<string, string>
-            {
-                {
-                    "token", CreateToken(userId)
-                }
-        });
+            int userId = _dapper.LoadDataSingle<int>(userIdSql);
+
+            return Ok(new Dictionary<string, string> {
+                {"token", CreateToken(userId)}
+            });
+        }
+
+        [HttpGet("RefreshToken")]
+        public string RefreshToken()
+        {
+            string userIdSql = @"
+                SELECT UserId FROM TutorialAppSchema.Users WHERE UserId = '" +
+                User.FindFirst("userId")?.Value + "'";
+
+            int userId = _dapper.LoadDataSingle<int>(userIdSql);
+
+            return CreateToken(userId);
         }
 
         private byte[] GetPasswordHash(string password, byte[] passwordSalt)
         {
             string passwordSaltPlusString = _config.GetSection("AppSettings:PasswordKey").Value +
-            Convert.ToBase64String(passwordSalt);
+                Convert.ToBase64String(passwordSalt);
 
-            byte[] passwordHash = KeyDerivation.Pbkdf2(
+            return KeyDerivation.Pbkdf2(
                 password: password,
-                salt: Encoding.UTF8.GetBytes(passwordSaltPlusString),
+                salt: Encoding.ASCII.GetBytes(passwordSaltPlusString),
                 prf: KeyDerivationPrf.HMACSHA256,
-                iterationCount: 100000,
+                iterationCount: 1000000,
                 numBytesRequested: 256 / 8
             );
-            return passwordHash;
         }
 
         private string CreateToken(int userId)
         {
-            Claim[] claims = new Claim[]
-            {
+            Claim[] claims = new Claim[] {
                 new Claim("userId", userId.ToString())
             };
 
-            SymmetricSecurityKey tokenkey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(
-                _config.GetSection("AppSettings:TokenKey").Value
-                )
-             );
+            string? tokenKeyString = _config.GetSection("AppSettings:TokenKey").Value;
+
+            SymmetricSecurityKey tokenKey = new SymmetricSecurityKey(
+                    Encoding.UTF8.GetBytes(
+                        tokenKeyString != null ? tokenKeyString : ""
+                    )
+                );
 
             SigningCredentials credentials = new SigningCredentials(
-                tokenkey,
-                 SecurityAlgorithms.HmacSha512Signature
-                 );
+                    tokenKey,
+                    SecurityAlgorithms.HmacSha512Signature
+                );
 
-            SecurityTokenDescriptor tokenDescriptor = new SecurityTokenDescriptor()
+            SecurityTokenDescriptor descriptor = new SecurityTokenDescriptor()
             {
                 Subject = new ClaimsIdentity(claims),
-                Expires = DateTime.Now.AddDays(1),
-                SigningCredentials = credentials
+                SigningCredentials = credentials,
+                Expires = DateTime.Now.AddDays(1)
             };
 
             JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
 
-            SecurityToken token = tokenHandler.CreateToken(tokenDescriptor);
+            SecurityToken token = tokenHandler.CreateToken(descriptor);
 
             return tokenHandler.WriteToken(token);
+
         }
+
 
     }
 }
