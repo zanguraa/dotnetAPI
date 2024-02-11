@@ -59,7 +59,7 @@ FROM TutorialAppSchema.Users";
              "',[Gender] ='" + user.Gender +
                 "',[Active] ='" + user.Active +
                 "' WHERE UserId = " + user.UserId.ToString();
-        if (_dapper.ExexuteSql(sql))
+        if (_dapper.ExecuteSql(sql))
         {
             return Ok();
         }
@@ -88,7 +88,7 @@ FROM TutorialAppSchema.Users";
                 "')";
 
         System.Console.WriteLine(sql);
-        if (_dapper.ExexuteSql(sql))
+        if (_dapper.ExecuteSql(sql))
         {
             return Ok();
         }
@@ -105,7 +105,7 @@ FROM TutorialAppSchema.Users";
         DELETE FROM TutorialAppSchema.Users
         WHERE UserId = " + userId.ToString();
 
-        if (_dapper.ExexuteSql(sql))
+        if (_dapper.ExecuteSql(sql))
         {
             return Ok();
         }

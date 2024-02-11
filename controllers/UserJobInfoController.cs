@@ -72,7 +72,7 @@ namespace DotnetApi.Controllers
             (UserId, JobTitle, Department)
             VALUES
             (" + userJobInfo.UserId.ToString() + @", '" + userJobInfo.JobTitle + @"', '" + userJobInfo.Department + @"')";
-            if (_dapper.ExexuteSql(sql))
+            if (_dapper.ExecuteSql(sql))
             {
                 return Ok();
             }

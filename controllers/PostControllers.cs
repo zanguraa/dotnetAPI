@@ -72,6 +72,21 @@ namespace DotnetApi.Controllers
             return _dapper.LoadData<Post>(sql);
         }
 
+        [HttpGet("PostBySearch/{searchParam}")]
+        public IEnumerable<Post> GetMyposts(string searchParam)
+        {
+            string sql = @" SELECT [PostId],
+                    [UserId],
+                    [PostTitle],
+                    [PostContent],
+                    [PostCreated],
+                    [PostUpdated] FROM TutorialAppSchema.Posts
+                      WHERE PostTitle LIKE '%" + searchParam + @"%'
+                        OR PostContent LIKE '%" + searchParam + "%'";
+
+            return _dapper.LoadData<Post>(sql);
+        }
+
         [HttpPost("AddPost")]
         public IActionResult AddPost(PostToAddDto postAdd)
         {

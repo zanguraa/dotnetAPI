@@ -91,7 +91,7 @@ namespace DotnetApi.Controllers
                "','" + UserForRegistration.Gender +
                "', 1)";
 
-            if (_dapper.ExexuteSql(sqlAddUser))
+            if (_dapper.ExecuteSql(sqlAddUser))
             {
                 return Ok();
             }
