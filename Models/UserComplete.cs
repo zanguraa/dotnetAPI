@@ -2,7 +2,6 @@ namespace DotnetApi.Models
 {
     public partial class UserComplete
     {
-        public int UserId { get; set; }
         public string FirstName { get; set; }
         public string LastName { get; set; }
         public string Email { get; set; }
@@ -12,6 +11,7 @@ namespace DotnetApi.Models
         public string Department { get; set; }
         public decimal Salary { get; set; }
         public decimal AvgSalary { get; set; }
+        public int UserId { get; set; }
 
 
         public UserComplete()
