@@ -58,38 +58,25 @@ namespace DotnetApi.Controllers
 
 
 
-        [HttpPut("AddPost")]
-        public IActionResult AddPost(Post postAdd)
+        [HttpPut("UpsertPost")]
+        public IActionResult UpsertPost(Post postToUpsert)
         {
             string sql = @"EXEC TutorialAppSchema.spPosts_Upsert
                 @UserId=" + this.User.FindFirst("userid")?.Value +
-                ", @PostTitle ='" + postAdd.PostTitle +
-                "', @PostContent ='" + postAdd.PostContent + "'";
+                ", @PostTitle ='" + postToUpsert.PostTitle +
+                "', @PostContent ='" + postToUpsert.PostContent + "'";
 
-            sql += "', @PostId = " + postAdd.PostId;
+            if (postToUpsert.PostId > 0)
+            {
+
+                sql += ", @PostId = " + postToUpsert.PostId;
+            }
 
             if (_dapper.ExecuteSql(sql))
             {
                 return Ok();
             }
-            throw new Exception("Failed to Create post");
-        }
-
-        [HttpPut("EditPost")]
-        public IActionResult EditPost(PostToEditDto postEdit)
-        {
-            string sql = @"UPDATE TutorialAppSchema.Posts
-                   SET PostContent = '" + postEdit.PostContent + @"',
-                       PostTitle = '" + postEdit.PostTitle + @"',
-                       PostUpdated = GETDATE()
-                   WHERE PostId = " + postEdit.PostId.ToString() + @"
-                   AND UserId = " + this.User.FindFirst("userid")?.Value;
-
-            if (_dapper.ExecuteSql(sql))
-            {
-                return Ok();
-            }
-            throw new Exception("Failed to Edit post");
+            throw new Exception("Failed to Upsert post");
         }
 
         [HttpDelete("DeletePost/{postId}")]
